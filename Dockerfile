@@ -12,4 +12,4 @@ EXPOSE 3000
 
 ENV AUTH_TOKEN EVEN_MORE_SECRET
 
-CMD ["node", "app.js"]
+CMD ["node", "server.js"]
