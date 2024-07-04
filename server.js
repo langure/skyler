@@ -27,7 +27,7 @@ function authenticate(req, res, next) {
 app.use(express.json());
 
 app.post('/registerError', authenticate, (req, res) => {
-    const errorData = req.body;
+    const errorData = req.body.message;
     db.run('INSERT INTO errors (error) VALUES (?)', [errorData], (err) => {
         if (err) {
             return res.status(500).json({ error: err.message });
