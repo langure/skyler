@@ -1,5 +1,6 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const bodyParser = require('body-parser');
 const app = express();
 const port = 80; // Choose your desired port
 
@@ -23,59 +24,78 @@ function authenticate(req, res, next) {
     next();
 }
 
+// Middleware to parse JSON bodies
+app.use(bodyParser.json({ limit: '50mb' })); // Increased limit for larger JSON bodies
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
+});
+
 // API Endpoints
-app.use(express.json());
-
-app.post('/registerError', authenticate, (req, res) => {
-    const errorData = req.body.message;
-    db.run('INSERT INTO errors (error) VALUES (?)', [errorData], (err) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ message: 'Error registered successfully' });
-    });
+app.post('/registerError', authenticate, (req, res, next) => {
+    try {
+        const errorData = JSON.stringify(req.body); // Always stringify the entire req.body
+        db.run('INSERT INTO errors (error) VALUES (?)', [errorData], (err) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ message: 'Error registered successfully' });
+        });
+    } catch (err) {
+        next(err); // Pass to global error handler
+    }
 });
 
-app.get('/returnErrors', authenticate, (req, res) => {
-    const { start, finish } = req.query;
-    // Date validation
-    const isValidDate = (dateStr) => {
-        const timestamp = Date.parse(dateStr);
-        return !isNaN(timestamp);
-    };
+app.get('/returnErrors', authenticate, (req, res, next) => {
+    try {
+        const { start, finish } = req.query;
+        // Date validation
+        const isValidDate = (dateStr) => {
+            const timestamp = Date.parse(dateStr);
+            return !isNaN(timestamp);
+        };
 
-    if (!isValidDate(start) || !isValidDate(finish)) {
-        return res.status(400).json({
-            error: 'Bad Request',
-            message: 'Invalid date format. Please provide dates in a valid format (e.g., ISO 8601).',
-            receivedDates: { start, finish } // Echo back the received dates
-        });
-    }
-
-    db.all('SELECT * FROM errors WHERE timestamp BETWEEN ? AND ?', [start, finish], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+        if (!isValidDate(start) || !isValidDate(finish)) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Invalid date format. Please provide dates in a valid format (e.g., ISO 8601).',
+                receivedDates: { start, finish } // Echo back the received dates
+            });
         }
-        res.json(rows);
-    });
+
+        db.all('SELECT * FROM errors WHERE timestamp BETWEEN ? AND ?', [start, finish], (err, rows) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json(rows);
+        });
+    } catch (err) {
+        next(err); // Pass to global error handler
+    }
 });
 
-app.get('/getLast', authenticate, (req, res) => {
-    const limit = parseInt(req.query.limit, 10); // Get limit from query parameter
+app.get('/getLast', authenticate, (req, res, next) => {
+    try {
+        const limit = parseInt(req.query.limit, 10); // Get limit from query parameter
 
-    if (isNaN(limit) || limit <= 0) {
-        return res.status(400).json({
-            error: 'Bad Request',
-            message: 'Invalid limit. Please provide a positive integer.'
-        });
-    }
-
-    db.all(`SELECT * FROM errors ORDER BY timestamp DESC LIMIT ?`, [limit], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+        if (isNaN(limit) || limit <= 0) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Invalid limit. Please provide a positive integer.'
+            });
         }
-        res.json(rows);
-    });
+
+        db.all('SELECT * FROM errors ORDER BY timestamp DESC LIMIT ?', [limit], (err, rows) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json(rows);
+        });
+    } catch (err) {
+        next(err); // Pass to global error handler
+    }
 });
 
 app.get('/test', authenticate, (req, res) => {
@@ -96,6 +116,12 @@ app.get('/', (req, res) => {
         </html>
     `;
     res.send(html);
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred.' });
 });
 
 app.listen(port, () => {
