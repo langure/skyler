@@ -12,7 +12,8 @@ const db = new sqlite3.Database('errors.db');
 db.run(`CREATE TABLE IF NOT EXISTS errors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     error TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    timezone TEXT DEFAULT 'UTC'
 )`);
 
 // Middleware for authentication
@@ -37,7 +38,8 @@ app.use((err, req, res, next) => {
 app.post('/registerError', authenticate, (req, res, next) => {
     try {
         const errorData = JSON.stringify(req.body); // Always stringify the entire req.body
-        db.run('INSERT INTO errors (error) VALUES (?)', [errorData], (err) => {
+        const timestamp = new Date().toISOString(); // Get the current UTC timestamp
+        db.run('INSERT INTO errors (error, timestamp) VALUES (?, ?)', [errorData, timestamp], (err) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
