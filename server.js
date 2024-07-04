@@ -4,7 +4,7 @@ const app = express();
 const port = 3000; // Choose your desired port
 
 // Environment variable setup
-const AUTH_TOKEN = process.env.AUTH_TOKEN || 'DBNAJSLDLKANSDO=FDNds0.sidasfhjASDO'; // Get from ENV or use default
+const AUTH_TOKEN = process.env.AUTH_TOKEN || 'SUPER_SECRET_KEY';
 
 // Database setup
 const db = new sqlite3.Database('errors.db');
