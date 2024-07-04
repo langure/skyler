@@ -60,6 +60,24 @@ app.get('/returnErrors', authenticate, (req, res) => {
     });
 });
 
+app.get('/getLast', authenticate, (req, res) => {
+    const limit = parseInt(req.query.limit, 10); // Get limit from query parameter
+
+    if (isNaN(limit) || limit <= 0) {
+        return res.status(400).json({
+            error: 'Bad Request',
+            message: 'Invalid limit. Please provide a positive integer.'
+        });
+    }
+
+    db.all(`SELECT * FROM errors ORDER BY timestamp DESC LIMIT ?`, [limit], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows);
+    });
+});
+
 app.get('/test', authenticate, (req, res) => {
     res.send('ok');
 });
