@@ -1,7 +1,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const app = express();
-const port = 3000; // Choose your desired port
+const port = 80; // Choose your desired port
 
 // Environment variable setup
 const AUTH_TOKEN = process.env.AUTH_TOKEN || 'SUPER_SECRET_KEY';
@@ -62,6 +62,22 @@ app.get('/returnErrors', authenticate, (req, res) => {
 
 app.get('/test', authenticate, (req, res) => {
     res.send('ok');
+});
+
+app.get('/', (req, res) => {
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Skyler</title>
+        </head>
+        <body>
+            <h1>Skyler rules</h1>
+            <p>Your error service is up and running.</p>
+        </body>
+        </html>
+    `;
+    res.send(html);
 });
 
 app.listen(port, () => {
